@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Energy Bern - Music Player</title>
+  <title>Energy Player - Recently Played</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
@@ -30,20 +30,46 @@
       0%, 100% { transform: scaleY(.2); }
       50% { transform: scaleY(1); }
     }
+    /* Style for the active channel button */
+    .active-channel {
+        background-image: linear-gradient(to right, var(--tw-gradient-stops));
+        --tw-gradient-from: #22c55e;
+        --tw-gradient-to: #3b82f6;
+        --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+        color: white;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+    /* Full-screen details page styles */
+    .details-screen {
+        transition: opacity 0.3s ease-in-out;
+    }
+    .details-content {
+        transition: transform 0.3s ease-in-out;
+    }
+    body.modal-open {
+        overflow: hidden;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white antialiased">
 
   <!-- Main Container -->
-  <div class="min-h-screen flex flex-col">
+  <div id="main-content" class="min-h-screen flex flex-col">
 
     <!-- Header -->
     <header class="p-6 text-center">
       <h1 class="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 drop-shadow-md">
-        🎶 Energy Bern
+        🎶 Energy Player
       </h1>
       <p class="mt-2 text-gray-400 text-lg">Your Recently Played Songs</p>
       
+      <!-- Channel Selector Carousel -->
+      <div id="channel-selector" class="mt-8 flex justify-center items-center flex-wrap gap-2 sm:gap-4">
+        <button data-channel="bern" class="channel-btn py-2 px-5 rounded-full text-sm font-semibold transition active-channel">Bern</button>
+        <button data-channel="basel" class="channel-btn py-2 px-5 rounded-full text-sm font-semibold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition">Basel</button>
+        <button data-channel="luzern" class="channel-btn py-2 px-5 rounded-full text-sm font-semibold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition">Lucerne</button>
+      </div>
+
       <!-- Reload button -->
       <div class="mt-6">
         <button id="reload-button"
@@ -62,7 +88,6 @@
 
     <!-- Songs List -->
     <main id="song-list" class="flex-1 px-6 pb-28 max-w-4xl w-full mx-auto space-y-4 overflow-y-auto">
-
       <!-- Loading -->
       <div id="loading" class="flex justify-center items-center h-64">
         <div class="h-16 w-16 border-t-4 border-b-4 border-green-400 rounded-full animate-spin"></div>
@@ -97,8 +122,45 @@
     </footer>
   </div>
 
+  <!-- **NEW**: Full-screen Gemini Details Page -->
+  <div id="details-screen" class="details-screen fixed inset-0 bg-gray-900/90 backdrop-blur-lg z-50 hidden opacity-0 overflow-y-auto">
+      <div class="details-content container mx-auto p-4 sm:p-8 max-w-4xl text-white transform translate-y-8">
+          <button id="close-details-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+          </button>
+          
+          <div class="flex flex-col md:flex-row gap-8">
+              <div class="md:w-1/3 text-center">
+                  <img id="details-img" src="" class="w-full rounded-2xl shadow-2xl mb-4">
+                  <h2 id="details-title" class="text-3xl font-bold capitalize"></h2>
+                  <p id="details-artist" class="text-lg text-gray-400 capitalize mb-4"></p>
+                  <button id="details-play-btn" class="bg-green-500 text-white font-bold py-3 px-6 rounded-full flex items-center justify-center gap-2 w-full">
+                      <span id="details-play-icon">▶️</span> Play Preview
+                  </button>
+              </div>
+              <div class="md:w-2/3 space-y-6">
+                  <div>
+                      <h3 class="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">✨ Fun Fact</h3>
+                      <p id="details-fact" class="text-gray-300 min-h-[50px]"></p>
+                  </div>
+                  <div>
+                      <h3 class="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">🎵 Lyrics</h3>
+                      <pre id="details-lyrics" class="text-gray-300 whitespace-pre-wrap font-sans bg-gray-800/50 p-4 rounded-lg max-h-60 overflow-y-auto"></pre>
+                  </div>
+                  <div>
+                      <h3 class="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">🎧 Listen On</h3>
+                      <div id="details-links" class="flex flex-wrap gap-4"></div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  const mainContent = document.getElementById('main-content');
   const songList = document.getElementById('song-list');
   const loadingIndicator = document.getElementById('loading');
   const audioPlayer = document.getElementById('audio-player');
@@ -110,99 +172,155 @@ document.addEventListener('DOMContentLoaded', () => {
   const playerArtist = document.getElementById('player-artist');
   const playerImg = document.getElementById('player-img');
   const playPauseBtn = document.getElementById('play-pause');
+  const channelSelector = document.getElementById('channel-selector');
+  
+  // Details Screen elements
+  const detailsScreen = document.getElementById('details-screen');
+  const closeDetailsBtn = document.getElementById('close-details-btn');
+  const detailsImg = document.getElementById('details-img');
+  const detailsTitle = document.getElementById('details-title');
+  const detailsArtist = document.getElementById('details-artist');
+  const detailsPlayBtn = document.getElementById('details-play-btn');
+  const detailsPlayIcon = document.getElementById('details-play-icon');
+  const detailsFact = document.getElementById('details-fact');
+  const detailsLyrics = document.getElementById('details-lyrics');
+  const detailsLinks = document.getElementById('details-links');
 
-  const apiUrl = 'https://energy.ch/api/channels/bern/playouts';
-  const proxyUrls = [ 'https://corsproxy.io/?', 'https://api.allorigins.win/raw?url=' ];
+
+  const proxyUrls = [ 
+      'https://corsproxy.io/?', 
+      'https://api.allorigins.win/raw?url=',
+      'https://thingproxy.freeboard.io/fetch/'
+  ];
   let currentProxyIndex = 0;
   let currentlyPlayingCard = null;
+  let currentChannel = 'bern';
 
-  // **NEW**: A core function for a single fetch attempt. Returns data on success, null on failure.
+  // --- Gemini API Function ---
+  // **MODIFIED**: Updated to fetch structured data (lyrics, links, fact).
+  async function getSongDetails(title, artist) {
+      const prompt = `For the song "${title}" by "${artist}", provide the following information in a JSON object: the full lyrics, a fun fact (under 40 words), and streaming links for YouTube, Spotify, and Apple Music.`;
+      const apiKey = "AIzaSyBwNywxcIhAk8t-xC_9yDLRCBuA9ZOPm88"; // API key will be provided by the environment
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+      
+      const payload = {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                      "lyrics": { "type": "STRING" },
+                      "funFact": { "type": "STRING" },
+                      "streamingLinks": {
+                          "type": "OBJECT",
+                          "properties": {
+                              "youtube": { "type": "STRING" },
+                              "spotify": { "type": "STRING" },
+                              "appleMusic": { "type": "STRING" }
+                          }
+                      }
+                  }
+              }
+          }
+      };
+
+      try {
+          const response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+          const result = await response.json();
+          const jsonText = result.candidates[0].content.parts[0].text;
+          return JSON.parse(jsonText);
+      } catch (error) {
+          console.error("Gemini API call failed:", error);
+          return {
+              lyrics: "Sorry, lyrics could not be fetched at this time.",
+              funFact: "Could not fetch a fun fact right now. Please try again later.",
+              streamingLinks: {}
+          };
+      }
+  }
+
+
+  // A core function for a single fetch attempt.
   async function performFetchAttempt() {
+    const apiUrl = `https://energy.ch/api/channels/${currentChannel}/playouts`;
     const proxyBase = proxyUrls[currentProxyIndex];
-    const proxyUrl = proxyBase.includes('allorigins') ?
-      `${proxyBase}${encodeURIComponent(apiUrl)}` : `${proxyBase}${apiUrl}`;
+    let proxyUrl = proxyBase.includes('allorigins') ? `${proxyBase}${encodeURIComponent(apiUrl)}` : `${proxyBase}${apiUrl}`;
     
     try {
       const response = await fetch(proxyUrl);
       if(!response.ok) throw new Error(`HTTP Status: ${response.status}`);
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch(e) {
       console.error(`Fetch attempt failed with proxy ${currentProxyIndex}:`, e.message);
-      currentProxyIndex = (currentProxyIndex + 1) % proxyUrls.length; // Cycle to the next proxy
+      currentProxyIndex = (currentProxyIndex + 1) % proxyUrls.length;
       return null;
     }
   }
 
-  // **NEW**: Function to handle the initial load, retrying until successful.
+  // Function to handle the initial load.
   async function initialLoad() {
     let songs = null;
     while (!songs || songs.length === 0) {
-      console.log("Attempting to fetch initial playlist...");
       songs = await performFetchAttempt();
-      if (!songs || songs.length === 0) {
-        console.log("Playlist empty or fetch failed. Retrying in 5 seconds...");
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retrying
-      }
+      if (!songs || songs.length === 0) await new Promise(resolve => setTimeout(resolve, 5000));
     }
     loadingIndicator.style.display = "none";
     displaySongs(songs);
   }
   
-  // This function is for manual reloads and the 5-minute interval.
+  // Function for manual reloads and interval updates.
   async function fetchSongs() {
     if (reloadButton.disabled) return;
-
     reloadButton.disabled = true;
     reloadText.textContent = 'Loading...';
     reloadIcon.classList.add('animate-spin');
-
     const songs = await performFetchAttempt();
-    if (songs) { // Only update the list if the fetch was successful
-        displaySongs(songs);
-    }
-
+    if (songs) displaySongs(songs);
     reloadButton.disabled = false;
     reloadText.textContent = 'Reload Playlist';
     reloadIcon.classList.remove('animate-spin');
   }
 
   function displaySongs(songs){
-    // Preserve the currently playing song's state across reloads
     const currentAudioUrl = currentlyPlayingCard ? currentlyPlayingCard.dataset.audioUrl : null;
     const isPlaying = !audioPlayer.paused && currentAudioUrl;
-
     songList.innerHTML = '';
-    currentlyPlayingCard = null; // Reset reference
+    currentlyPlayingCard = null;
 
     songs.forEach(song => {
       const card = document.createElement('div');
-      card.className = 'song-card group bg-gray-800/60 rounded-xl p-4 flex items-center space-x-4 shadow-md hover:shadow-lg hover:bg-gray-700/80 cursor-pointer transition duration-300';
-      card.dataset.audioUrl = song.audioUrl;
+      card.className = 'song-card-container';
       card.innerHTML = `
-        <img src="${song.imageUrl}" onerror="this.src='https://placehold.co/80x80?text=M';"
-             class="w-16 h-16 rounded-lg object-cover shadow-sm"/>
-        <div class="flex-1 min-w-0">
-          <h3 class="text-white font-semibold truncate capitalize">${song.title}</h3>
-          <p class="text-sm text-gray-400 truncate capitalize">${song.artist}</p>
-          <p class="text-xs text-gray-500">${formatPlayTime(song.playFrom)}</p>
-        </div>
-        <div>
-          <div class="play-icon text-gray-400 group-hover:text-green-400">▶️</div>
-          <div class="playing-indicator hidden"><span></span><span></span><span></span></div>
+        <div class="song-card group bg-gray-800/60 rounded-xl p-4 flex items-center space-x-4 shadow-md hover:shadow-lg hover:bg-gray-700/80 cursor-pointer transition duration-300"
+             data-audio-url="${song.audioUrl}">
+          <img src="${song.imageUrl}" onerror="this.src='https://placehold.co/80x80?text=M';"
+               class="song-img w-16 h-16 rounded-lg object-cover shadow-sm"/>
+          <div class="flex-1 min-w-0">
+            <h3 class="song-title text-white font-semibold truncate capitalize">${song.title}</h3>
+            <p class="song-artist text-sm text-gray-400 truncate capitalize">${song.artist}</p>
+            <p class="text-xs text-gray-500">${formatPlayTime(song.playFrom)}</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button class="details-btn p-2 rounded-full hover:bg-gray-600 transition" title="Get song details">✨</button>
+            <div class="play-icon text-gray-400 group-hover:text-green-400">▶️</div>
+            <div class="playing-indicator hidden"><span></span><span></span><span></span></div>
+          </div>
         </div>
       `;
       songList.appendChild(card);
-      // Restore the playing state if the song is still in the list
+      const songCardElement = card.querySelector('.song-card');
       if (isPlaying && song.audioUrl === currentAudioUrl) {
-          currentlyPlayingCard = card;
+          currentlyPlayingCard = songCardElement;
       }
     });
 
-    // Re-apply the 'playing' UI to the correct card after the list is rendered
-    if (currentlyPlayingCard) {
-        updateUI(true);
-    }
+    if (currentlyPlayingCard) updateUI(true);
   }
 
   function formatPlayTime(str){
@@ -210,32 +328,92 @@ document.addEventListener('DOMContentLoaded', () => {
     return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   }
 
+  // Combined event listener for play and details
   songList.addEventListener('click', async (e) => {
+    const detailsButton = e.target.closest('.details-btn');
     const card = e.target.closest('.song-card');
-    if (!card) return;
-    const url = card.dataset.audioUrl;
-    if (currentlyPlayingCard === card && !audioPlayer.paused) {
-      audioPlayer.pause();
-      return;
-    }
-    try {
-      currentlyPlayingCard = card;
-      updatePlayerBar(card);
-      if (audioPlayer.src !== url) {
-        audioPlayer.src = url;
-      }
-      await audioPlayer.play();
-    } catch (error) {
-      if (error.name !== 'AbortError') console.error("Error playing audio:", error);
+
+    if (detailsButton) {
+        showDetailsScreen(card);
+    } else if (card) {
+        playSongFromCard(card);
     }
   });
+  
+  async function playSongFromCard(card) {
+      const url = card.dataset.audioUrl;
+      if (currentlyPlayingCard === card && !audioPlayer.paused) {
+          audioPlayer.pause();
+          return;
+      }
+      try {
+          currentlyPlayingCard = card;
+          updatePlayerBar(card);
+          if (audioPlayer.src !== url) audioPlayer.src = url;
+          await audioPlayer.play();
+      } catch (error) {
+          if (error.name !== 'AbortError') console.error("Error playing audio:", error);
+      }
+  }
+
+  // --- Details Screen Functions ---
+  async function showDetailsScreen(card) {
+      document.body.classList.add('modal-open');
+      detailsScreen.classList.remove('hidden');
+      setTimeout(() => {
+          detailsScreen.classList.remove('opacity-0');
+          detailsScreen.querySelector('.details-content').classList.remove('translate-y-8');
+      }, 10);
+      
+      // Populate initial info
+      const title = card.querySelector('.song-title').textContent;
+      const artist = card.querySelector('.song-artist').textContent;
+      detailsImg.src = card.querySelector('.song-img').src;
+      detailsTitle.textContent = title;
+      detailsArtist.textContent = artist;
+      
+      // Set loading states
+      const loadingHTML = `<div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-400"></div>`;
+      detailsFact.innerHTML = loadingHTML;
+      detailsLyrics.innerHTML = loadingHTML;
+      detailsLinks.innerHTML = loadingHTML;
+
+      // Fetch from Gemini and populate
+      const details = await getSongDetails(title, artist);
+      detailsFact.textContent = details.funFact;
+      detailsLyrics.textContent = details.lyrics;
+      
+      detailsLinks.innerHTML = '';
+      for (const [platform, url] of Object.entries(details.streamingLinks)) {
+          if (url) {
+              const link = document.createElement('a');
+              link.href = url;
+              link.target = '_blank';
+              link.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-full text-sm capitalize';
+              link.textContent = platform.replace('Music', ' Music');
+              detailsLinks.appendChild(link);
+          }
+      }
+      if (detailsLinks.innerHTML === '') {
+          detailsLinks.innerHTML = `<p class="text-gray-400">No streaming links found.</p>`;
+      }
+  }
+
+  function hideDetailsScreen() {
+      document.body.classList.remove('modal-open');
+      detailsScreen.classList.add('opacity-0');
+      detailsScreen.querySelector('.details-content').classList.add('translate-y-8');
+      setTimeout(() => detailsScreen.classList.add('hidden'), 300);
+  }
+
+  closeDetailsBtn.addEventListener('click', hideDetailsScreen);
+  detailsPlayBtn.addEventListener('click', () => {
+      if (currentlyPlayingCard) playSongFromCard(currentlyPlayingCard);
+  });
+
 
   playPauseBtn.addEventListener('click', ()=>{
-    if(audioPlayer.paused){
-      audioPlayer.play();
-    } else {
-      audioPlayer.pause();
-    }
+    if(audioPlayer.paused){ audioPlayer.play(); } else { audioPlayer.pause(); }
   });
 
   audioPlayer.addEventListener('play', ()=> updateUI(true));
@@ -253,8 +431,10 @@ document.addEventListener('DOMContentLoaded', () => {
       currentlyPlayingCard.querySelector('.playing-indicator').classList.remove('hidden');
       currentlyPlayingCard.classList.add('ring-2','ring-green-500');
       playPauseBtn.textContent='⏸';
+      detailsPlayIcon.textContent='⏸';
     } else {
       playPauseBtn.textContent='▶️';
+      detailsPlayIcon.textContent='▶️';
     }
   }
 
@@ -265,13 +445,28 @@ document.addEventListener('DOMContentLoaded', () => {
     playerImg.src = card.querySelector('img').src;
   }
 
-  reloadButton.addEventListener('click', fetchSongs);
-  
-  // Start the robust initial loading process
-  initialLoad();
+  channelSelector.addEventListener('click', (e) => {
+    const button = e.target.closest('.channel-btn');
+    if (!button || button.classList.contains('active-channel')) return;
+    currentChannel = button.dataset.channel;
+    document.querySelectorAll('.channel-btn').forEach(btn => {
+        btn.classList.remove('active-channel');
+        btn.classList.add('bg-gray-800', 'text-gray-400');
+    });
+    button.classList.add('active-channel');
+    button.classList.remove('bg-gray-800', 'text-gray-400');
+    songList.innerHTML = '';
+    loadingIndicator.style.display = 'flex';
+    playerBar.classList.add('hidden');
+    audioPlayer.pause();
+    audioPlayer.src = '';
+    currentlyPlayingCard = null;
+    fetchSongs();
+  });
 
-  // Set the interval for subsequent background updates
-  setInterval(fetchSongs, 300000); // 5 minutes = 300,000 milliseconds
+  reloadButton.addEventListener('click', fetchSongs);
+  initialLoad();
+  setInterval(fetchSongs, 300000);
 });
 </script>
 </body>
