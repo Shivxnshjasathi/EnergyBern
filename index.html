@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Energy Bern - Music Player</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {font-family: 'Inter', sans-serif;}
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #111827; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+    /* Playing bars animation */
+    .playing-indicator {
+      width: 18px; height: 18px;
+      display: flex; justify-content: space-around; align-items: flex-end;
+    }
+    .playing-indicator span {
+      width: 3px; height: 100%;
+      background-color: #10B981; border-radius: 2px;
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+    .playing-indicator span:nth-of-type(2) { animation-delay: -1s; }
+    .playing-indicator span:nth-of-type(3) { animation-delay: -0.5s; }
+    @keyframes bounce {
+      0%, 100% { transform: scaleY(.2); }
+      50% { transform: scaleY(1); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white antialiased">
+
+  <!-- Main Container -->
+  <div class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="p-6 text-center">
+      <h1 class="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 drop-shadow-md">
+        🎶 Energy Bern
+      </h1>
+      <p class="mt-2 text-gray-400 text-lg">Your Recently Played Songs</p>
+      
+      <!-- Reload button -->
+      <div class="mt-6">
+        <button id="reload-button"
+          class="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 
+                 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed 
+                 text-white font-semibold py-2 px-6 rounded-full shadow-lg flex items-center gap-2 transition">
+          <svg id="reload-icon" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-4.991-2.695v-2.257a4.5 4.5 0 00-4.5-4.5H10.5a4.5 4.5 0 00-4.5 4.5v2.257m12.75 0h-4.992" />
+          </svg>
+          <span id="reload-text">Reload Playlist</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Songs List -->
+    <main id="song-list" class="flex-1 px-6 pb-28 max-w-4xl w-full mx-auto space-y-4 overflow-y-auto">
+
+      <!-- Loading -->
+      <div id="loading" class="flex justify-center items-center h-64">
+        <div class="h-16 w-16 border-t-4 border-b-4 border-green-400 rounded-full animate-spin"></div>
+      </div>
+      <!-- Songs injected here -->
+    </main>
+
+    <!-- Fixed Bottom Player Bar -->
+    <div id="player-bar" class="fixed bottom-0 inset-x-0 bg-black/80 backdrop-blur-md border-t border-gray-800 p-4 hidden">
+      <div class="flex items-center justify-between max-w-5xl mx-auto">
+        <div id="player-info" class="flex items-center space-x-3">
+          <img id="player-img" src="" alt="" class="w-12 h-12 rounded-lg object-cover shadow-md">
+          <div>
+            <h2 id="player-title" class="text-white font-semibold text-sm truncate w-40 capitalize"></h2>
+            <p id="player-artist" class="text-gray-400 text-xs truncate w-40 capitalize"></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <button id="play-pause" class="p-3 rounded-full bg-green-500 hover:bg-green-600 transition">
+            ▶️
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden audio element -->
+    <audio id="audio-player" class="hidden"></audio>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-gray-500 text-sm">
+      <p>Powered by Energy.ch API 🎵 | Designed for a smooth music experience</p>
+    </footer>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const songList = document.getElementById('song-list');
+  const loadingIndicator = document.getElementById('loading');
+  const audioPlayer = document.getElementById('audio-player');
+  const reloadButton = document.getElementById('reload-button');
+  const reloadIcon = document.getElementById('reload-icon');
+  const reloadText = document.getElementById('reload-text');
+  const playerBar = document.getElementById('player-bar');
+  const playerTitle = document.getElementById('player-title');
+  const playerArtist = document.getElementById('player-artist');
+  const playerImg = document.getElementById('player-img');
+  const playPauseBtn = document.getElementById('play-pause');
+
+  const apiUrl = 'https://energy.ch/api/channels/bern/playouts';
+  const proxyUrls = [ 'https://corsproxy.io/?', 'https://api.allorigins.win/raw?url=' ];
+  let currentProxyIndex = 0;
+  let currentlyPlayingCard = null;
+
+  // **NEW**: A core function for a single fetch attempt. Returns data on success, null on failure.
+  async function performFetchAttempt() {
+    const proxyBase = proxyUrls[currentProxyIndex];
+    const proxyUrl = proxyBase.includes('allorigins') ?
+      `${proxyBase}${encodeURIComponent(apiUrl)}` : `${proxyBase}${apiUrl}`;
+    
+    try {
+      const response = await fetch(proxyUrl);
+      if(!response.ok) throw new Error(`HTTP Status: ${response.status}`);
+      const data = await response.json();
+      return data;
+    } catch(e) {
+      console.error(`Fetch attempt failed with proxy ${currentProxyIndex}:`, e.message);
+      currentProxyIndex = (currentProxyIndex + 1) % proxyUrls.length; // Cycle to the next proxy
+      return null;
+    }
+  }
+
+  // **NEW**: Function to handle the initial load, retrying until successful.
+  async function initialLoad() {
+    let songs = null;
+    while (!songs || songs.length === 0) {
+      console.log("Attempting to fetch initial playlist...");
+      songs = await performFetchAttempt();
+      if (!songs || songs.length === 0) {
+        console.log("Playlist empty or fetch failed. Retrying in 5 seconds...");
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retrying
+      }
+    }
+    loadingIndicator.style.display = "none";
+    displaySongs(songs);
+  }
+  
+  // This function is for manual reloads and the 5-minute interval.
+  async function fetchSongs() {
+    if (reloadButton.disabled) return;
+
+    reloadButton.disabled = true;
+    reloadText.textContent = 'Loading...';
+    reloadIcon.classList.add('animate-spin');
+
+    const songs = await performFetchAttempt();
+    if (songs) { // Only update the list if the fetch was successful
+        displaySongs(songs);
+    }
+
+    reloadButton.disabled = false;
+    reloadText.textContent = 'Reload Playlist';
+    reloadIcon.classList.remove('animate-spin');
+  }
+
+  function displaySongs(songs){
+    // Preserve the currently playing song's state across reloads
+    const currentAudioUrl = currentlyPlayingCard ? currentlyPlayingCard.dataset.audioUrl : null;
+    const isPlaying = !audioPlayer.paused && currentAudioUrl;
+
+    songList.innerHTML = '';
+    currentlyPlayingCard = null; // Reset reference
+
+    songs.forEach(song => {
+      const card = document.createElement('div');
+      card.className = 'song-card group bg-gray-800/60 rounded-xl p-4 flex items-center space-x-4 shadow-md hover:shadow-lg hover:bg-gray-700/80 cursor-pointer transition duration-300';
+      card.dataset.audioUrl = song.audioUrl;
+      card.innerHTML = `
+        <img src="${song.imageUrl}" onerror="this.src='https://placehold.co/80x80?text=M';"
+             class="w-16 h-16 rounded-lg object-cover shadow-sm"/>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-white font-semibold truncate capitalize">${song.title}</h3>
+          <p class="text-sm text-gray-400 truncate capitalize">${song.artist}</p>
+          <p class="text-xs text-gray-500">${formatPlayTime(song.playFrom)}</p>
+        </div>
+        <div>
+          <div class="play-icon text-gray-400 group-hover:text-green-400">▶️</div>
+          <div class="playing-indicator hidden"><span></span><span></span><span></span></div>
+        </div>
+      `;
+      songList.appendChild(card);
+      // Restore the playing state if the song is still in the list
+      if (isPlaying && song.audioUrl === currentAudioUrl) {
+          currentlyPlayingCard = card;
+      }
+    });
+
+    // Re-apply the 'playing' UI to the correct card after the list is rendered
+    if (currentlyPlayingCard) {
+        updateUI(true);
+    }
+  }
+
+  function formatPlayTime(str){
+    const d=new Date(str);
+    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  songList.addEventListener('click', async (e) => {
+    const card = e.target.closest('.song-card');
+    if (!card) return;
+    const url = card.dataset.audioUrl;
+    if (currentlyPlayingCard === card && !audioPlayer.paused) {
+      audioPlayer.pause();
+      return;
+    }
+    try {
+      currentlyPlayingCard = card;
+      updatePlayerBar(card);
+      if (audioPlayer.src !== url) {
+        audioPlayer.src = url;
+      }
+      await audioPlayer.play();
+    } catch (error) {
+      if (error.name !== 'AbortError') console.error("Error playing audio:", error);
+    }
+  });
+
+  playPauseBtn.addEventListener('click', ()=>{
+    if(audioPlayer.paused){
+      audioPlayer.play();
+    } else {
+      audioPlayer.pause();
+    }
+  });
+
+  audioPlayer.addEventListener('play', ()=> updateUI(true));
+  audioPlayer.addEventListener('pause', ()=> updateUI(false));
+  audioPlayer.addEventListener('ended', ()=>{ updateUI(false); currentlyPlayingCard=null; });
+
+  function updateUI(isPlaying){
+    document.querySelectorAll('.song-card').forEach(c=>{
+      c.querySelector('.play-icon').classList.remove('hidden');
+      c.querySelector('.playing-indicator').classList.add('hidden');
+      c.classList.remove('ring-2','ring-green-500');
+    });
+    if(currentlyPlayingCard && isPlaying){
+      currentlyPlayingCard.querySelector('.play-icon').classList.add('hidden');
+      currentlyPlayingCard.querySelector('.playing-indicator').classList.remove('hidden');
+      currentlyPlayingCard.classList.add('ring-2','ring-green-500');
+      playPauseBtn.textContent='⏸';
+    } else {
+      playPauseBtn.textContent='▶️';
+    }
+  }
+
+  function updatePlayerBar(card){
+    playerBar.classList.remove('hidden');
+    playerTitle.textContent = card.querySelector('h3').textContent;
+    playerArtist.textContent = card.querySelector('p').textContent;
+    playerImg.src = card.querySelector('img').src;
+  }
+
+  reloadButton.addEventListener('click', fetchSongs);
+  
+  // Start the robust initial loading process
+  initialLoad();
+
+  // Set the interval for subsequent background updates
+  setInterval(fetchSongs, 300000); // 5 minutes = 300,000 milliseconds
+});
+</script>
+</body>
+</html>
