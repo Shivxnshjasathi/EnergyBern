@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Energy Player - Recently Played</title>
+  <title>Lilt - Professional Music Player</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     body {font-family: 'Inter', sans-serif;}
-    /* Custom scrollbar */
+    /* Custom scrollbar for a sleeker look */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #111827; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 8px; }
     ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
 
-    /* Playing bars animation */
+    /* The animated "playing" indicator bars */
     .playing-indicator {
       width: 18px; height: 18px;
       display: flex; justify-content: space-around; align-items: flex-end;
@@ -30,127 +30,146 @@
       0%, 100% { transform: scaleY(.2); }
       50% { transform: scaleY(1); }
     }
-    /* Style for the active channel button */
+    
+    /* Styling for the active channel button with a gradient */
     .active-channel {
         background-image: linear-gradient(to right, var(--tw-gradient-stops));
         --tw-gradient-from: #22c55e;
         --tw-gradient-to: #3b82f6;
         --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
         color: white;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        box-shadow: 0 4px 15px -3px rgba(34, 197, 94, 0.4);
     }
-    /* Full-screen details page styles */
-    .details-screen {
-        transition: opacity 0.3s ease-in-out;
+    
+    /* Styles for the full-screen song details modal */
+    .details-screen { transition: opacity 0.3s ease-in-out; }
+    .details-content { transition: transform 0.3s ease-in-out; }
+    body.modal-open { overflow: hidden; }
+    
+    /* Landing page animations for a smooth entry */
+    @keyframes fade-in-down {
+        0% { opacity: 0; transform: translateY(-20px); }
+        100% { opacity: 1; transform: translateY(0); }
     }
-    .details-content {
-        transition: transform 0.3s ease-in-out;
+    .animate-fade-in-down { animation: fade-in-down 1s ease-out forwards; }
+
+    @keyframes fade-in-up {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
     }
-    body.modal-open {
-        overflow: hidden;
+    .animate-fade-in-up { animation: fade-in-up 1s ease-out 0.5s forwards; opacity: 0; }
+    
+    /* Subtle background pattern for a more premium feel */
+    body {
+        background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+        background-size: 20px 20px;
     }
   </style>
 </head>
-<body class="bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white antialiased">
+<body class="bg-gray-900 text-white antialiased">
+
+  <!-- Landing Page -->
+  <div id="landing-page" class="fixed inset-0 bg-gray-900 z-50 flex flex-col justify-center items-center text-center p-4 transition-opacity duration-1000 ease-in-out">
+    <div class="animate-fade-in-down">
+      <h1 class="text-8xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 drop-shadow-lg">
+        Lilt
+      </h1>
+      <p class="mt-4 text-2xl text-gray-300">Your personal sound wave.</p>
+      <button id="enter-btn" class="mt-12 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-10 rounded-full shadow-xl transform hover:scale-105 transition-all duration-300">
+        Enter
+      </button>
+    </div>
+    <div class="animate-fade-in-up mt-12">
+        <a href="#" class="inline-block transition-transform hover:scale-105" aria-label="Download on the Google Play Store">
+            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" class="h-16">
+        </a>
+    </div>
+  </div>
 
   <!-- Main Container -->
-  <div id="main-content" class="min-h-screen flex flex-col">
+  <div id="main-content" class="min-h-screen flex-col hidden opacity-0 transition-opacity duration-1000">
 
     <!-- Header -->
-    <header class="p-6 text-center">
-      <h1 class="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 drop-shadow-md">
-        🎶 Energy Player
+    <header class="p-6 text-center backdrop-blur-sm sticky top-0 z-10 bg-gray-900/70">
+      <h1 class="text-3xl sm:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500 drop-shadow-md">
+        🎶 Lilt
       </h1>
-      <p class="mt-2 text-gray-400 text-lg">Your Recently Played Songs</p>
+      <p class="mt-1 text-gray-400 text-md">Your Recently Played Songs</p>
       
       <!-- Channel Selector Carousel -->
-      <div id="channel-selector" class="mt-8 flex justify-center items-center flex-wrap gap-2 sm:gap-4">
-        <button data-channel="bern" class="channel-btn py-2 px-5 rounded-full text-sm font-semibold transition active-channel">Bern</button>
-        <button data-channel="basel" class="channel-btn py-2 px-5 rounded-full text-sm font-semibold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition">Basel</button>
-        <button data-channel="luzern" class="channel-btn py-2 px-5 rounded-full text-sm font-semibold text-gray-400 bg-gray-800 hover:bg-gray-700 hover:text-white transition">Lucerne</button>
-      </div>
-
-      <!-- Reload button -->
-      <div class="mt-6">
-        <button id="reload-button"
-          class="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 
-                 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed 
-                 text-white font-semibold py-2 px-6 rounded-full shadow-lg flex items-center gap-2 transition">
-          <svg id="reload-icon" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none"
-               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-4.991-2.695v-2.257a4.5 4.5 0 00-4.5-4.5H10.5a4.5 4.5 0 00-4.5 4.5v2.257m12.75 0h-4.992" />
-          </svg>
-          <span id="reload-text">Reload Playlist</span>
-        </button>
+      <div id="channel-selector" class="mt-6 flex justify-center items-center flex-wrap gap-2 sm:gap-4 bg-gray-800/50 p-2 rounded-full max-w-sm mx-auto">
+        <button data-channel="bern" class="channel-btn flex-1 py-2 px-5 rounded-full text-sm font-semibold transition-all duration-300 active-channel">Bern</button>
+        <button data-channel="basel" class="channel-btn flex-1 py-2 px-5 rounded-full text-sm font-semibold text-gray-400 hover:text-white transition-all duration-300">Basel</button>
+        <button data-channel="luzern" class="channel-btn flex-1 py-2 px-5 rounded-full text-sm font-semibold text-gray-400 hover:text-white transition-all duration-300">Lucerne</button>
       </div>
     </header>
 
     <!-- Songs List -->
-    <main id="song-list" class="flex-1 px-6 pb-28 max-w-4xl w-full mx-auto space-y-4 overflow-y-auto">
+    <main id="song-list" class="flex-1 px-4 sm:px-6 pb-28 max-w-4xl w-full mx-auto space-y-3 sm:space-y-4">
       <!-- Loading -->
       <div id="loading" class="flex justify-center items-center h-64">
         <div class="h-16 w-16 border-t-4 border-b-4 border-green-400 rounded-full animate-spin"></div>
       </div>
-      <!-- Songs injected here -->
+      <!-- Songs will be injected here by JavaScript -->
     </main>
 
     <!-- Fixed Bottom Player Bar -->
-    <div id="player-bar" class="fixed bottom-0 inset-x-0 bg-black/80 backdrop-blur-md border-t border-gray-800 p-4 hidden">
+    <div id="player-bar" class="fixed bottom-0 inset-x-0 bg-black/80 backdrop-blur-md border-t border-gray-800 p-3 sm:p-4 hidden">
       <div class="flex items-center justify-between max-w-5xl mx-auto">
-        <div id="player-info" class="flex items-center space-x-3">
-          <img id="player-img" src="" alt="" class="w-12 h-12 rounded-lg object-cover shadow-md">
-          <div>
-            <h2 id="player-title" class="text-white font-semibold text-sm truncate w-40 capitalize"></h2>
-            <p id="player-artist" class="text-gray-400 text-xs truncate w-40 capitalize"></p>
+        <div id="player-info" class="flex items-center space-x-3 min-w-0">
+          <img id="player-img" src="" alt="" class="w-14 h-14 rounded-lg object-cover shadow-md">
+          <div class="min-w-0">
+            <h2 id="player-title" class="text-white font-semibold text-sm truncate capitalize"></h2>
+            <p id="player-artist" class="text-gray-400 text-xs truncate capitalize"></p>
           </div>
         </div>
         <div class="flex items-center gap-4">
-          <button id="play-pause" class="p-3 rounded-full bg-green-500 hover:bg-green-600 transition">
-            ▶️
+          <button id="play-pause" class="w-12 h-12 flex items-center justify-center rounded-full bg-green-500 hover:bg-green-600 transition-transform hover:scale-110">
+             <svg class="w-6 h-6 text-white" id="player-play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+             <svg class="w-6 h-6 text-white hidden" id="player-pause-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.75 4.5a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V5.25a.75.75 0 00-.75-.75zM14.25 4.5a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V5.25a.75.75 0 00-.75-.75z" /></svg>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Hidden audio element -->
+    <!-- Hidden audio element for playback -->
     <audio id="audio-player" class="hidden"></audio>
 
     <!-- Footer -->
     <footer class="text-center py-6 text-gray-500 text-sm">
-      <p>Powered by Energy.ch API 🎵 | Designed for a smooth music experience</p>
+      <p>Your personal sound wave 🎵 | Designed for a smooth music experience</p>
     </footer>
   </div>
 
-  <!-- **NEW**: Full-screen Gemini Details Page -->
+  <!-- Full-screen Gemini Details Page -->
   <div id="details-screen" class="details-screen fixed inset-0 bg-gray-900/90 backdrop-blur-lg z-50 hidden opacity-0 overflow-y-auto">
       <div class="details-content container mx-auto p-4 sm:p-8 max-w-4xl text-white transform translate-y-8">
           <button id="close-details-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           
           <div class="flex flex-col md:flex-row gap-8">
               <div class="md:w-1/3 text-center">
-                  <img id="details-img" src="" class="w-full rounded-2xl shadow-2xl mb-4">
+                  <img id="details-img" src="" class="w-full rounded-2xl shadow-2xl mb-4 aspect-square object-cover">
                   <h2 id="details-title" class="text-3xl font-bold capitalize"></h2>
                   <p id="details-artist" class="text-lg text-gray-400 capitalize mb-4"></p>
-                  <button id="details-play-btn" class="bg-green-500 text-white font-bold py-3 px-6 rounded-full flex items-center justify-center gap-2 w-full">
-                      <span id="details-play-icon">▶️</span> Play Preview
+                  <button id="details-play-btn" class="bg-green-500 text-white font-bold py-3 px-6 rounded-full flex items-center justify-center gap-2 w-full transition-transform hover:scale-105">
+                      <svg class="w-5 h-5" id="details-play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                      <svg class="w-5 h-5 hidden" id="details-pause-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.75 4.5a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V5.25a.75.75 0 00-.75-.75zM14.25 4.5a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V5.25a.75.75 0 00-.75-.75z" /></svg>
+                      <span id="details-play-text">Play Preview</span>
                   </button>
               </div>
               <div class="md:w-2/3 space-y-6">
                   <div>
-                      <h3 class="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">✨ Fun Fact</h3>
+                      <h3 class="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">✨ Fun Fact</h3>
                       <p id="details-fact" class="text-gray-300 min-h-[50px]"></p>
                   </div>
                   <div>
-                      <h3 class="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">🎵 Lyrics</h3>
+                      <h3 class="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">🎵 Lyrics</h3>
                       <pre id="details-lyrics" class="text-gray-300 whitespace-pre-wrap font-sans bg-gray-800/50 p-4 rounded-lg max-h-60 overflow-y-auto"></pre>
                   </div>
                   <div>
-                      <h3 class="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">🎧 Listen On</h3>
+                      <h3 class="text-xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">🎧 Listen On</h3>
                       <div id="details-links" class="flex flex-wrap gap-4"></div>
                   </div>
               </div>
@@ -160,19 +179,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Page elements
+  const landingPage = document.getElementById('landing-page');
+  const enterBtn = document.getElementById('enter-btn');
   const mainContent = document.getElementById('main-content');
   const songList = document.getElementById('song-list');
   const loadingIndicator = document.getElementById('loading');
   const audioPlayer = document.getElementById('audio-player');
-  const reloadButton = document.getElementById('reload-button');
-  const reloadIcon = document.getElementById('reload-icon');
-  const reloadText = document.getElementById('reload-text');
+  const channelSelector = document.getElementById('channel-selector');
+  
+  // Player bar elements
   const playerBar = document.getElementById('player-bar');
   const playerTitle = document.getElementById('player-title');
   const playerArtist = document.getElementById('player-artist');
   const playerImg = document.getElementById('player-img');
   const playPauseBtn = document.getElementById('play-pause');
-  const channelSelector = document.getElementById('channel-selector');
+  const playerPlayIcon = document.getElementById('player-play-icon');
+  const playerPauseIcon = document.getElementById('player-pause-icon');
   
   // Details Screen elements
   const detailsScreen = document.getElementById('details-screen');
@@ -182,27 +205,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const detailsArtist = document.getElementById('details-artist');
   const detailsPlayBtn = document.getElementById('details-play-btn');
   const detailsPlayIcon = document.getElementById('details-play-icon');
+  const detailsPauseIcon = document.getElementById('details-pause-icon');
+  const detailsPlayText = document.getElementById('details-play-text');
   const detailsFact = document.getElementById('details-fact');
   const detailsLyrics = document.getElementById('details-lyrics');
   const detailsLinks = document.getElementById('details-links');
 
-
-  const proxyUrls = [ 
-      'https://corsproxy.io/?', 
+  // App state
+  const proxyUrls = [  
+      'https://corsproxy.io/?',  
       'https://api.allorigins.win/raw?url=',
       'https://thingproxy.freeboard.io/fetch/'
   ];
   let currentProxyIndex = 0;
   let currentlyPlayingCard = null;
   let currentChannel = 'bern';
+  let songsData = [];
+
+  // --- App Entry ---
+  enterBtn.addEventListener('click', () => {
+    landingPage.classList.add('opacity-0');
+    setTimeout(() => {
+        landingPage.style.display = 'none';
+        mainContent.classList.remove('hidden');
+        setTimeout(() => {
+           mainContent.classList.remove('opacity-0');
+           mainContent.classList.add('flex');
+        }, 50);
+        initialLoad(); 
+        setInterval(fetchSongs, 300000); 
+    }, 1000);
+  });
 
   // --- Gemini API Function ---
-  // **MODIFIED**: Updated to fetch structured data (lyrics, links, fact).
   async function getSongDetails(title, artist) {
-      const prompt = `For the song "${title}" by "${artist}", provide the following information in a JSON object: the full lyrics, a fun fact (under 40 words), and streaming links for YouTube, Spotify, and Apple Music.`;
-      const apiKey = "AIzaSyBwNywxcIhAk8t-xC_9yDLRCBuA9ZOPm88"; // API key will be provided by the environment
+      const prompt = `For the song "${title}" by "${artist}", provide a JSON object with: the full lyrics, a fun fact (under 40 words), and streaming links for YouTube, Spotify, and Apple Music.`;
+      const apiKey = ""; // API key is provided by the environment
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-      
       const payload = {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
@@ -213,8 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
                       "lyrics": { "type": "STRING" },
                       "funFact": { "type": "STRING" },
                       "streamingLinks": {
-                          "type": "OBJECT",
-                          "properties": {
+                          type: "OBJECT",
+                          properties: {
                               "youtube": { "type": "STRING" },
                               "spotify": { "type": "STRING" },
                               "appleMusic": { "type": "STRING" }
@@ -224,14 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
               }
           }
       };
-
       try {
           const response = await fetch(apiUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
           });
-          if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+          if (!response.ok) throw new Error(`API request failed: ${response.status}`);
           const result = await response.json();
           const jsonText = result.candidates[0].content.parts[0].text;
           return JSON.parse(jsonText);
@@ -245,25 +283,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   }
 
-
-  // A core function for a single fetch attempt.
+  // --- Data Fetching ---
   async function performFetchAttempt() {
     const apiUrl = `https://energy.ch/api/channels/${currentChannel}/playouts`;
     const proxyBase = proxyUrls[currentProxyIndex];
     let proxyUrl = proxyBase.includes('allorigins') ? `${proxyBase}${encodeURIComponent(apiUrl)}` : `${proxyBase}${apiUrl}`;
-    
     try {
       const response = await fetch(proxyUrl);
       if(!response.ok) throw new Error(`HTTP Status: ${response.status}`);
       return await response.json();
     } catch(e) {
-      console.error(`Fetch attempt failed with proxy ${currentProxyIndex}:`, e.message);
+      console.error(`Fetch failed with proxy ${currentProxyIndex}:`, e.message);
       currentProxyIndex = (currentProxyIndex + 1) % proxyUrls.length;
       return null;
     }
   }
 
-  // Function to handle the initial load.
   async function initialLoad() {
     let songs = null;
     while (!songs || songs.length === 0) {
@@ -271,44 +306,45 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!songs || songs.length === 0) await new Promise(resolve => setTimeout(resolve, 5000));
     }
     loadingIndicator.style.display = "none";
-    displaySongs(songs);
+    songsData = songs;
+    displaySongs(songsData);
   }
   
-  // Function for manual reloads and interval updates.
   async function fetchSongs() {
-    if (reloadButton.disabled) return;
-    reloadButton.disabled = true;
-    reloadText.textContent = 'Loading...';
-    reloadIcon.classList.add('animate-spin');
     const songs = await performFetchAttempt();
-    if (songs) displaySongs(songs);
-    reloadButton.disabled = false;
-    reloadText.textContent = 'Reload Playlist';
-    reloadIcon.classList.remove('animate-spin');
+    if (songs) {
+        songsData = songs;
+        displaySongs(songsData);
+    }
   }
 
+  // --- UI Rendering ---
   function displaySongs(songs){
     const currentAudioUrl = currentlyPlayingCard ? currentlyPlayingCard.dataset.audioUrl : null;
     const isPlaying = !audioPlayer.paused && currentAudioUrl;
     songList.innerHTML = '';
     currentlyPlayingCard = null;
 
-    songs.forEach(song => {
+    songs.forEach((song, index) => {
       const card = document.createElement('div');
       card.className = 'song-card-container';
       card.innerHTML = `
-        <div class="song-card group bg-gray-800/60 rounded-xl p-4 flex items-center space-x-4 shadow-md hover:shadow-lg hover:bg-gray-700/80 cursor-pointer transition duration-300"
-             data-audio-url="${song.audioUrl}">
-          <img src="${song.imageUrl}" onerror="this.src='https://placehold.co/80x80?text=M';"
-               class="song-img w-16 h-16 rounded-lg object-cover shadow-sm"/>
+        <div class="song-card group bg-gray-800/60 rounded-xl p-3 sm:p-4 flex items-center space-x-4 shadow-lg hover:shadow-xl hover:bg-gray-700/80 cursor-pointer transition-all duration-300"
+             data-song-index="${index}" data-audio-url="${song.audioUrl}">
+          <img src="${song.imageUrl}" onerror="this.src='https://placehold.co/80x80/22c55e/ffffff?text=Lilt';"
+               class="song-img w-16 h-16 rounded-lg object-cover shadow-sm flex-shrink-0"/>
           <div class="flex-1 min-w-0">
             <h3 class="song-title text-white font-semibold truncate capitalize">${song.title}</h3>
             <p class="song-artist text-sm text-gray-400 truncate capitalize">${song.artist}</p>
             <p class="text-xs text-gray-500">${formatPlayTime(song.playFrom)}</p>
           </div>
           <div class="flex items-center space-x-2">
-            <button class="details-btn p-2 rounded-full hover:bg-gray-600 transition" title="Get song details">✨</button>
-            <div class="play-icon text-gray-400 group-hover:text-green-400">▶️</div>
+            <button class="details-btn p-2 rounded-full hover:bg-gray-600 transition" title="Get song details">
+                <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.868 2.884c.321-.772 1.305-.772 1.626 0l1.393 3.364a1 1 0 00.95.69h3.543c.83 0 1.164.993.57 1.513l-2.866 2.08a1 1 0 00-.364 1.118l1.093 3.913c.22 1.22-.96 1.838-1.732 1.232l-2.958-2.146a1 1 0 00-1.176 0l-2.958 2.146c-.772.606-1.952-.012-1.732-1.232l1.093-3.913a1 1 0 00-.364-1.118L2.054 8.45c-.594-.52-.26-1.513.57-1.513h3.543a1 1 0 00.95-.69L8.51 2.884z" clip-rule="evenodd" /></svg>
+            </button>
+            <div class="play-icon text-gray-400 group-hover:text-green-400">
+                <svg class="w-8 h-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+            </div>
             <div class="playing-indicator hidden"><span></span><span></span><span></span></div>
           </div>
         </div>
@@ -328,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   }
 
-  // Combined event listener for play and details
+  // --- Event Listeners & Player Logic ---
   songList.addEventListener('click', async (e) => {
     const detailsButton = e.target.closest('.details-btn');
     const card = e.target.closest('.song-card');
@@ -356,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   }
 
-  // --- Details Screen Functions ---
   async function showDetailsScreen(card) {
       document.body.classList.add('modal-open');
       detailsScreen.classList.remove('hidden');
@@ -365,34 +400,35 @@ document.addEventListener('DOMContentLoaded', () => {
           detailsScreen.querySelector('.details-content').classList.remove('translate-y-8');
       }, 10);
       
-      // Populate initial info
-      const title = card.querySelector('.song-title').textContent;
-      const artist = card.querySelector('.song-artist').textContent;
-      detailsImg.src = card.querySelector('.song-img').src;
-      detailsTitle.textContent = title;
-      detailsArtist.textContent = artist;
+      const songIndex = card.dataset.songIndex;
+      const song = songsData[songIndex];
+
+      detailsImg.src = song.imageUrl;
+      detailsTitle.textContent = song.title;
+      detailsArtist.textContent = song.artist;
+      updateDetailsPlayButton();
       
-      // Set loading states
-      const loadingHTML = `<div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-400"></div>`;
+      const loadingHTML = `<div class="flex justify-center items-center"><div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-400"></div></div>`;
       detailsFact.innerHTML = loadingHTML;
       detailsLyrics.innerHTML = loadingHTML;
       detailsLinks.innerHTML = loadingHTML;
 
-      // Fetch from Gemini and populate
-      const details = await getSongDetails(title, artist);
+      const details = await getSongDetails(song.title, song.artist);
       detailsFact.textContent = details.funFact;
       detailsLyrics.textContent = details.lyrics;
       
       detailsLinks.innerHTML = '';
-      for (const [platform, url] of Object.entries(details.streamingLinks)) {
-          if (url) {
-              const link = document.createElement('a');
-              link.href = url;
-              link.target = '_blank';
-              link.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-full text-sm capitalize';
-              link.textContent = platform.replace('Music', ' Music');
-              detailsLinks.appendChild(link);
-          }
+      if (details.streamingLinks && Object.keys(details.streamingLinks).length > 0) {
+        for (const [platform, url] of Object.entries(details.streamingLinks)) {
+            if (url) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.className = 'bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-full text-sm capitalize transition-transform hover:scale-105 inline-block';
+                link.textContent = platform.replace('Music', ' Music');
+                detailsLinks.appendChild(link);
+            }
+        }
       }
       if (detailsLinks.innerHTML === '') {
           detailsLinks.innerHTML = `<p class="text-gray-400">No streaming links found.</p>`;
@@ -408,12 +444,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   closeDetailsBtn.addEventListener('click', hideDetailsScreen);
   detailsPlayBtn.addEventListener('click', () => {
-      if (currentlyPlayingCard) playSongFromCard(currentlyPlayingCard);
+      const cardToPlay = Array.from(document.querySelectorAll('.song-card')).find(card => 
+          card.querySelector('.song-title').textContent.toLowerCase() === detailsTitle.textContent.toLowerCase()
+      );
+      if (cardToPlay) playSongFromCard(cardToPlay);
   });
 
 
   playPauseBtn.addEventListener('click', ()=>{
-    if(audioPlayer.paused){ audioPlayer.play(); } else { audioPlayer.pause(); }
+    if(currentlyPlayingCard) {
+        if(audioPlayer.paused){ audioPlayer.play(); } else { audioPlayer.pause(); }
+    }
   });
 
   audioPlayer.addEventListener('play', ()=> updateUI(true));
@@ -424,25 +465,45 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.song-card').forEach(c=>{
       c.querySelector('.play-icon').classList.remove('hidden');
       c.querySelector('.playing-indicator').classList.add('hidden');
-      c.classList.remove('ring-2','ring-green-500');
+      c.classList.remove('ring-2','ring-green-500', 'shadow-green-500/30');
     });
+
     if(currentlyPlayingCard && isPlaying){
       currentlyPlayingCard.querySelector('.play-icon').classList.add('hidden');
       currentlyPlayingCard.querySelector('.playing-indicator').classList.remove('hidden');
-      currentlyPlayingCard.classList.add('ring-2','ring-green-500');
-      playPauseBtn.textContent='⏸';
-      detailsPlayIcon.textContent='⏸';
+      currentlyPlayingCard.classList.add('ring-2','ring-green-500', 'shadow-green-500/30');
+      playerPlayIcon.classList.add('hidden');
+      playerPauseIcon.classList.remove('hidden');
     } else {
-      playPauseBtn.textContent='▶️';
-      detailsPlayIcon.textContent='▶️';
+      playerPlayIcon.classList.remove('hidden');
+      playerPauseIcon.classList.add('hidden');
     }
+    updateDetailsPlayButton();
+  }
+
+  function updateDetailsPlayButton() {
+     const isCurrentlyPlayingThisSong = currentlyPlayingCard && 
+        !audioPlayer.paused &&
+        currentlyPlayingCard.querySelector('.song-title').textContent.toLowerCase() === detailsTitle.textContent.toLowerCase();
+
+      if(isCurrentlyPlayingThisSong) {
+        detailsPlayIcon.classList.add('hidden');
+        detailsPauseIcon.classList.remove('hidden');
+        detailsPlayText.textContent = "Pause";
+      } else {
+        detailsPlayIcon.classList.remove('hidden');
+        detailsPauseIcon.classList.add('hidden');
+        detailsPlayText.textContent = "Play Preview";
+      }
   }
 
   function updatePlayerBar(card){
     playerBar.classList.remove('hidden');
-    playerTitle.textContent = card.querySelector('h3').textContent;
-    playerArtist.textContent = card.querySelector('p').textContent;
-    playerImg.src = card.querySelector('img').src;
+    const songIndex = card.dataset.songIndex;
+    const song = songsData[songIndex];
+    playerTitle.textContent = song.title;
+    playerArtist.textContent = song.artist;
+    playerImg.src = song.imageUrl;
   }
 
   channelSelector.addEventListener('click', (e) => {
@@ -451,10 +512,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentChannel = button.dataset.channel;
     document.querySelectorAll('.channel-btn').forEach(btn => {
         btn.classList.remove('active-channel');
-        btn.classList.add('bg-gray-800', 'text-gray-400');
     });
     button.classList.add('active-channel');
-    button.classList.remove('bg-gray-800', 'text-gray-400');
     songList.innerHTML = '';
     loadingIndicator.style.display = 'flex';
     playerBar.classList.add('hidden');
@@ -464,10 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchSongs();
   });
 
-  reloadButton.addEventListener('click', fetchSongs);
-  initialLoad();
-  setInterval(fetchSongs, 300000);
 });
 </script>
 </body>
 </html>
+
